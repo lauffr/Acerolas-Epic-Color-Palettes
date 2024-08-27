@@ -63,8 +63,28 @@ function oklab_to_linear_srgb(L, a, b) {
   ];
 }
 
+function linear_srgb_to_oklab(r, g, b) {
+  let l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+	let m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+	let s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+
+  let l_ = Math.cbrt(l);
+  let m_ = Math.cbrt(m);
+  let s_ = Math.cbrt(s);
+
+  return [
+    (+0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_),
+    (+1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_),
+    (+0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_),
+  ];
+}
+
 function oklch_to_oklab(L, c, h) {
   return [(L), (c * Math.cos(h)), (c * Math.sin(h))];
+}
+
+function oklab_to_oklch(L, a, b) {
+  return [(L), (Math.sqrt(a * a + b * b)), (Math.atan2(b, a))]
 }
 
 function setup() {
@@ -232,6 +252,52 @@ function generateOKLCH(HUE_MODE, settings) {
   return oklchColors;
 }
 
+function generateOK_from_2_colors(HUE_MODE, COLOR_COUNT, rgb0, rgb1) {
+  let oklchColors = []	
+  let lab0 = linear_srgb_to_oklab(rgb0[0] / 255, rgb0[1] / 255, rgb0[2] / 255);
+  let lab1 = linear_srgb_to_oklab(rgb1[0] / 255, rgb1[1] / 255, rgb1[2] / 255);
+  if (HUE_MODE == "clockwise") {
+    let lch0 = oklab_to_oklch(lab0[0], lab0[1], lab0[2]);
+    let lch1 = oklab_to_oklch(lab1[0], lab1[1], lab1[2]);
+    if (lch0[2] < lch1[2]) lch0[2] += 2 * Math.PI;
+    for (let i = 0; i < COLOR_COUNT; ++i) {
+      let linearIterator = (i) / (COLOR_COUNT - 1);
+      let lch = [Lerp(lch0[0], lch1[0], linearIterator), Lerp(lch0[1], lch1[1], linearIterator), Lerp(lch0[2], lch1[2], linearIterator)];
+      let lab = oklch_to_oklab(lch[0], lch[1], lch[2]);
+      let rgb = oklab_to_linear_srgb(lab[0], lab[1], lab[2]);
+      rgb[0] = Math.round(Math.max(0.0, Math.min(rgb[0], 1.0)) * 255);
+      rgb[1] = Math.round(Math.max(0.0, Math.min(rgb[1], 1.0)) * 255);
+      rgb[2] = Math.round(Math.max(0.0, Math.min(rgb[2], 1.0)) * 255);
+      oklchColors.push(rgb);
+    }
+  } else if (HUE_MODE == "counterclockwise") {
+    let lch0 = oklab_to_oklch(lab0[0], lab0[1], lab0[2]);
+    let lch1 = oklab_to_oklch(lab1[0], lab1[1], lab1[2]);
+    if (lch1[2] < lch0[2]) lch1[2] += 2 * Math.PI;
+    for (let i = 0; i < COLOR_COUNT; ++i) {
+      let linearIterator = (i) / (COLOR_COUNT - 1);
+      let lch = [Lerp(lch0[0], lch1[0], linearIterator), Lerp(lch0[1], lch1[1], linearIterator), Lerp(lch0[2], lch1[2], linearIterator)];
+      let lab = oklch_to_oklab(lch[0], lch[1], lch[2]);
+      let rgb = oklab_to_linear_srgb(lab[0], lab[1], lab[2]);
+      rgb[0] = Math.round(Math.max(0.0, Math.min(rgb[0], 1.0)) * 255);
+      rgb[1] = Math.round(Math.max(0.0, Math.min(rgb[1], 1.0)) * 255);
+      rgb[2] = Math.round(Math.max(0.0, Math.min(rgb[2], 1.0)) * 255);
+      oklchColors.push(rgb);
+    }
+  } else if (HUE_MODE == "linear") {
+    for (let i = 0; i < COLOR_COUNT; ++i) {
+      let linearIterator = (i) / (COLOR_COUNT - 1);
+      let lab = [Lerp(lab0[0], lab1[0], linearIterator), Lerp(lab0[1], lab1[1], linearIterator), Lerp(lab0[2], lab1[2], linearIterator)];
+      let rgb = oklab_to_linear_srgb(lab[0], lab[1], lab[2]);
+      rgb[0] = Math.round(Math.max(0.0, Math.min(rgb[0], 1.0)) * 255);
+      rgb[1] = Math.round(Math.max(0.0, Math.min(rgb[1], 1.0)) * 255);
+      rgb[2] = Math.round(Math.max(0.0, Math.min(rgb[2], 1.0)) * 255);
+      oklchColors.push(rgb);
+    }
+  }
+  return oklchColors;
+}
+
 function PaletteSettings(COLOR_COUNT) {
   return {
     hueBase: Math.random(),
@@ -246,12 +312,9 @@ function PaletteSettings(COLOR_COUNT) {
   }
 }
 
-function generatePalettes(HUE_MODE, COLOR_COUNT) {
-  let paletteSettings = PaletteSettings(COLOR_COUNT);
-
-  let hsl = generateHSL(HUE_MODE, paletteSettings);
-  let hsv = generateHSV(HUE_MODE, paletteSettings);
-  let lch = generateOKLCH(HUE_MODE, paletteSettings);
-
-  return [hsl, hsv, lch];
+function generatePalettes(COLOR_COUNT, rgb0, rgb1) {
+  let linear = generateOK_from_2_colors("linear", COLOR_COUNT, rgb0, rgb1);
+  let clockwise = generateOK_from_2_colors("clockwise", COLOR_COUNT, rgb0, rgb1);
+  let counterclockwise = generateOK_from_2_colors("counterclockwise", COLOR_COUNT, rgb0, rgb1);
+  return [linear, clockwise, counterclockwise];
 }

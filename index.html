@@ -44,19 +44,32 @@
 </style>
 
 <body>
-    <h1>acerola's epic color palkettes</h1>
-    <p>Generate as many palettes as you want until you find one you like. Then take a picture of the palettes and tell Acerola which one you picked.</p>
+    <h1>acerola's epic color palettes with a few tweaks</h1>
+    <p>Generate palettes based on 2 rgb colors (beginning and end of the palette) using OKLAB/OKLCH. "Linear" is just evenly spaced colors in the OKLAB color space, "Clockwise" and "Counterclockwise" are evenly spaced colors in the OKLCH color space but they rotate around the hue wheel in different directions. All generated palettes are stored into the global_palettes variable, you may use your JS console to copy all of its contents directly (global_palettes[0] for linear, 1 for clockwise, 2 for counterclockwise, each is stored as an array of 0 to 255 rgb values).</p>
     <form id="color-form">
-        <label for="color-mode">Hue mode:</label>
-        <select id="color-mode" name="color-mode">
-            <option value="monochromatic">Monochromatic</option>
-            <option value="analagous">Analagous</option>
-            <option value="complementary">Complementary</option>
-            <option value="triadic complementary">Triadic Complementary</option>
-            <option value="tetradic complementary">Tetradic Complementary</option>
-        </select>
         <label for="color-count">Color count:</label>
-        <input id="color-count" name="color-count" type="number" min="3" max="16" value="8" />
+        <input id="color-count" name="color-count" type="number" min="3" value="8" />
+	<br/>
+	RGB values for colors 1 and 2 :
+	<br/>
+	color 1 :
+	<br/>
+        <label for="r0">R :</label>
+        <input id="r0" name="r0" type="number" min="0" max="255" value="0" />
+        <label for="g0">G :</label>
+        <input id="g0" name="g0" type="number" min="0" max="255" value="0" />
+        <label for="b0">B :</label>
+        <input id="b0" name="b0" type="number" min="0" max="255" value="0" />
+	<br/>
+	color 2 :
+	<br/>
+        <label for="r1">R :</label>
+        <input id="r1" name="r1" type="number" min="0" max="255" value="0" />
+        <label for="g1">G :</label>
+        <input id="g1" name="g1" type="number" min="0" max="255" value="0" />
+        <label for="b1">B :</label>
+        <input id="b1" name="b1" type="number" min="0" max="255" value="0" />
+	<br/>
         <input type="submit" value="Generate" />
     </form>
     <p id="click-instructions">click a color to see hex + rgb</p>
@@ -70,6 +83,7 @@
     </div>
     <script src="./colors.js"></script>
     <script>
+        var global_palettes;
         const getHexFromRGB = (rgb) => `#${Number(rgb[0]).toString(16).padStart(2, "0")}${Number(rgb[1]).toString(16).padStart(2, "0")}${Number(rgb[2]).toString(16).padStart(2, "0")}`;
 
         const getFakeResult = () => {
@@ -97,7 +111,7 @@
                 const paletteElement = document.createElement("div");
                 palettesElement.appendChild(paletteElement);
                 const paletteLabelElement = document.createElement("span");
-                paletteLabelElement.innerText = `Palette ${paletteIndex + 1}:`
+                paletteLabelElement.innerText = ["Linear :", "Clockwise :", "Counterclockwise :"][paletteIndex];
                 paletteLabelElement.style.lineHeight = "1";
                 paletteLabelElement.style.display = "block";
                 paletteLabelElement.style.marginBottom = ".125em";
@@ -128,16 +142,21 @@
 
         document.getElementById("color-form").addEventListener("submit", (e) => {
             e.preventDefault();
-            const colorMode = document.getElementById("color-mode");
-            const colorCount = document.getElementById("color-count");
+            const colorCount = parseInt(document.getElementById("color-count").value);
+            const r0 = parseInt(document.getElementById("r0").value)
+            const g0 = parseInt(document.getElementById("g0").value)
+            const b0 = parseInt(document.getElementById("b0").value)
+            const r1 = parseInt(document.getElementById("r1").value)
+            const g1 = parseInt(document.getElementById("g1").value)
+            const b1 = parseInt(document.getElementById("b1").value)
             const detailsColor = document.getElementById("details-color");
             const detailsHex = document.getElementById("details-hex");
             const detailsRGB = document.getElementById("details-rgb");
             detailsColor.style.backgroundColor = "";
             detailsHex.innerText = "";
             detailsRGB.innerText = "";
-            const result = generatePalettes(colorMode.value, colorCount.value);
-            handleResult(result);
+            global_palettes = generatePalettes(colorCount, [r0, g0, b0], [r1, g1, b1]);
+            handleResult(global_palettes);
             document.getElementById("click-instructions").style.display = "block";
         });
     </script>
